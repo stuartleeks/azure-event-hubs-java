@@ -1,4 +1,4 @@
-#Consuming Events with the Java Event Processor Host for Azure Event Hubs
+# Consuming Events with the Java Event Processor Host for Azure Event Hubs
 
 Event Processor Host is built on top of the Java client for Azure Event Hubs and provides a number of features
 not present in that lower layer:
@@ -24,13 +24,13 @@ not present in that lower layer:
    the processing code in order to keep up with event flow might checkpoint once every hundred messages, or once
    per second, etc.
 
-##Getting Started
+## Getting Started
 
 This library is available from the Maven Central Repository. See the readme for the Java Azure Event Hubs client for more information.
 
-##Using Event Processor Host
+## Using Event Processor Host
 
-###Step 1: Implement IEventProcessor
+### Step 1: Implement IEventProcessor
 
 There are four methods which need to be implemented: onOpen, onClose, onError, and onEvents.
 onOpen and onClose are called when an event processor instance is created and shut down, respectively, and are intended for setup
@@ -56,51 +56,51 @@ PartitionContext also provides the means to create a checkpoint for the partitio
 processing every event, for the purpose of providing an example. Because checkpointing is usually an expensive operation, this
 pattern is not appropriate for every application.
 
-    ``` Java
-    class EventProcessor implements IEventProcessor
-    {
-        @Override
-        public void onOpen(PartitionContext context) throws Exception
-        {
-      	    System.out.println("Partition " + context.getPartitionId() + " is opening");
-        }
+``` Java
+class EventProcessor implements IEventProcessor
+{
+  @Override
+  public void onOpen(PartitionContext context) throws Exception
+  {
+       System.out.println("Partition " + context.getPartitionId() + " is opening");
+  }
 
-    	@Override
-        public void onClose(PartitionContext context, CloseReason reason) throws Exception
-        {
-            System.out.println("Partition " + context.getPartitionId() + " is closing for reason " + reason.toString());
-        }
-    	
-    	@Override
-    	public void onError(PartitionContext context, Throwable error)
-    	{
-            System.out.println("Partition " + context.getPartitionId() + " got error " + error.toString());
-    	}
+  @Override
+  public void onClose(PartitionContext context, CloseReason reason) throws Exception
+  {
+      System.out.println("Partition " + context.getPartitionId() + " is closing for reason " + reason.toString());
+  }
 
-    	@Override
-        public void onEvents(PartitionContext context, Iterable<EventData> events) throws Exception
-        {
-            System.out.println("SAMPLE: Partition " + context.getPartitionId() + " got message batch");
-            for (EventData data : events)
-            {
-                try
-                {
-                    // Do something useful with the event here.
-                }
-                catch (Exception e) // Replace with specific exceptions to catch.
-                {
-                    // Handle the message-specific issue, or at least swallow the exception so the
-                    // loop can go on to process the next event. Throwing out of onEvents results in
-                    // skipping the entire rest of the batch.
-                }
+  @Override
+  public void onError(PartitionContext context, Throwable error)
+  {
+      System.out.println("Partition " + context.getPartitionId() + " got error " + error.toString());
+  }
 
-                context.checkpoint(data);
-            }
-        }
-    }
-    ```
+  @Override
+  public void onEvents(PartitionContext context, Iterable<EventData> events) throws Exception
+  {
+      System.out.println("SAMPLE: Partition " + context.getPartitionId() + " got message batch");
+      for (EventData data : events)
+      {
+          try
+          {
+              // Do something useful with the event here.
+          }
+          catch (Exception e) // Replace with specific exceptions to catch.
+          {
+              // Handle the message-specific issue, or at least swallow the exception so the
+              // loop can go on to process the next event. Throwing out of onEvents results in
+              // skipping the entire rest of the batch.
+          }
 
-###Step 2: Implement the General Error Notification Handler
+          context.checkpoint(data);
+      }
+  }
+}
+```
+
+### Step 2: Implement the General Error Notification Handler
 
 This is a class which implements Consumer<ExceptionReceivedEventArgs>. There is just one required method, accept, which will be
 called with an argument of type ExceptionReceivedEventArgs if an error occurs which is not tied to any particular event processor. The
@@ -109,18 +109,18 @@ exception, and the action being performed at the time of the error. To install t
 as an option when the event processor class is registered. Recovering from the error, if possible, is up to Event Processor Host; this
 notification is primarily informational.
 
-    ``` Java
-    class ErrorNotificationHandler implements Consumer<ExceptionReceivedEventArgs>
-    {
-        @Override
-        public void accept(ExceptionReceivedEventArgs t)
-        {
-            // Handle the notification here
-        }
-    }
-    ```
+``` Java
+class ErrorNotificationHandler implements Consumer<ExceptionReceivedEventArgs>
+{
+  @Override
+  public void accept(ExceptionReceivedEventArgs t)
+  {
+      // Handle the notification here
+  }
+}
+```
 
-###Step 3: Instantiate EventProcessorHost
+### Step 3: Instantiate EventProcessorHost
 
 In order to do this, the user will first need to build a connection string for the Event Hub. This may be conveniently done using
 the ConnectionStringBuilder class provided by the Java client for Azure Event Hubs. Make sure the sasKey has listen permission.
@@ -137,7 +137,7 @@ of ILeaseManager and ICheckpointManager (for example, to use Zookeeper instead o
     EventProcessorHost host = new EventProcessorHost(eventHubName, consumerGroupName, eventHubConnectionString.toString(), storageConnectionString, storageContainerName);
     ```
 
-###Step 4: Register the Event Processor Implementation to Start Processing Events
+### Step 4: Register the Event Processor Implementation to Start Processing Events
 
 Instantiate an object of class EventProcessorOptions and call the setExceptionNotification method with an object of the class
 implemented in step 2. This is also the time to modify the maximum event batch size (setMaxBatchSize), or set other options
@@ -152,35 +152,35 @@ The code shown here uses the default event processor factory, which will generat
 for every partition. To use a different pattern, you would need to implement IEventProcessorFactory and pass an instance of the
 implementation to EventProcessorHost.registerEventProcessorFactory. 
 
-    ``` Java
-    EventProcessorOptions options = EventProcessorOptions.getDefaultOptions();
-    options.setExceptionNotification(new ErrorNotificationHandler());
-    try
-    {
-        host.registerEventProcessor(EventProcessor.class, options).get();
-    }
-    catch (Exception e)
-    {
-        System.out.print("Failure while registering: ");
-        if (e instanceof ExecutionException)
-        {
-            Throwable inner = e.getCause();
-            System.out.println(inner.toString());
-        }
-        else
-        {
-            System.out.println(e.toString());
-        }
-    }
-    ```
+``` Java
+EventProcessorOptions options = EventProcessorOptions.getDefaultOptions();
+options.setExceptionNotification(new ErrorNotificationHandler());
+try
+{
+  host.registerEventProcessor(EventProcessor.class, options).get();
+}
+catch (Exception e)
+{
+  System.out.print("Failure while registering: ");
+  if (e instanceof ExecutionException)
+  {
+      Throwable inner = e.getCause();
+      System.out.println(inner.toString());
+  }
+  else
+  {
+      System.out.println(e.toString());
+  }
+}
+```
 
-###Step 5: Graceful Shutdown
+### Step 5: Graceful Shutdown
 
 When the time comes to shut down the instance of EventProcessorHost, call the unregisterEventProcessor method.
 
-    ``` Java
-    host.unregisterEventProcessor();
-    ```
+ ``` Java
+ host.unregisterEventProcessor();
+ ```
 
 If the entire process is shutting down and will never create a new instance of EventProcessorHost, then it is also time to shut
 down EventProcessorHost's internal thread pool. (This can also be done automatically, but the automatic option should only be
@@ -190,11 +190,11 @@ number of seconds to wait for all threads in the pool to exit. After calling unr
 EventProcessorHost, all threads in the pool should have exited anyway, so the timeout can be relatively short. The 120 seconds
 shown here is very, very conservative.
 
-    ``` Java
-    EventProcessorHost.forceExecutorShutdown(120);
-    ```
+``` Java
+EventProcessorHost.forceExecutorShutdown(120);
+```
 
-##Threading Notes
+## Threading Notes
 
 Calls to the IEventProcessor methods onOpen, onEvents, and onClose are serialized for a given partition. There is no guarantee that
 calls to these methods will be on any particular thread, but there will only be one call to any of these methods at a time. The onError
@@ -208,7 +208,7 @@ event processor factory can implement any pattern, such as creating only one IEv
 by every partition. In that example, onEvents will not receive multiple calls for any given partition at the same time, but it can be called
 on multiple threads for different partitions.
 
-##Running Tests
+## Running Tests
 
 Event Processor Host comes with a suite of JUnit-based tests. To run these tests, you will need an event hub and an Azure Storage account.
 You can create both through the Azure Portal at [portal.azure.com](http://portal.azure.com/). Once you have done that, get the
@@ -222,7 +222,7 @@ cases to run in order to detect major breakage. There are also some test cases i
 general use. That file preserves repro code from times when we had to mount a major investigation to get to the
 bottom of a problem.
 
-##Tracing
+## Tracing
 
 Event Processor Host can trace its execution for debugging and problem diagnosis, using the standard Java java.util.logging facilities.
 So can the underlying Java Azure Event Hubs client, and the Apache Qpid Proton-J AMQP client underneath that.
@@ -237,22 +237,22 @@ to track this. If you have any thoughts or ideas on the subject, please comment 
 To start tracing, run the JVM with the additional argument -Djava.util.logging.config.file=yourconfigfile, where yourconfigfile is a text
 file with the following contents:
 
-    ```
-    # FileHandler traces to a file
-    handlers=java.util.logging.FileHandler
-    # Turn tracing off by default to avoid a potential tidal wave of undesired traces
-    .level=OFF
-    # Set tracing level for Event Processor Host as desired
-    eventprocessorhost.trace.level=FINE
-    # Set tracing level for Event Hub client as desired
-    servicebus.trace.level=FINE
-    # Set tracing for Apache Qpid Proton-J as desired
-    proton.trace.level=FINE
-    # Tell FileHandler to not filter anything
-    java.util.logging.FileHandler.level=ALL
-    # TODO Set the name of the output file
-    java.util.logging.FileHandler.pattern=tracefilename
-    # Use the SimpleFormatter and specify the particular format
-    java.util.logging.SimpleFormatter.format=[%1$tF %1$tr] %3$s %4$s: %5$s %n
-    java.util.logging.FileHandler.formatter=java.util.logging.SimpleFormatter
-    ```
+ ```
+ # FileHandler traces to a file
+ handlers=java.util.logging.FileHandler
+ # Turn tracing off by default to avoid a potential tidal wave of undesired traces
+ .level=OFF
+ # Set tracing level for Event Processor Host as desired
+ eventprocessorhost.trace.level=FINE
+ # Set tracing level for Event Hub client as desired
+ servicebus.trace.level=FINE
+ # Set tracing for Apache Qpid Proton-J as desired
+ proton.trace.level=FINE
+ # Tell FileHandler to not filter anything
+ java.util.logging.FileHandler.level=ALL
+ # TODO Set the name of the output file
+ java.util.logging.FileHandler.pattern=tracefilename
+ # Use the SimpleFormatter and specify the particular format
+ java.util.logging.SimpleFormatter.format=[%1$tF %1$tr] %3$s %4$s: %5$s %n
+ java.util.logging.FileHandler.formatter=java.util.logging.SimpleFormatter
+ ```
